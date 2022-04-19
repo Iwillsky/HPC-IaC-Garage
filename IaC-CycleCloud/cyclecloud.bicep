@@ -39,13 +39,13 @@ resource cyclevnet 'Microsoft.Network/virtualNetworks@2021-05-01' = {
     }
     subnets: [
       {
-        name: '${prefixDeploy}-cycle'
+        name: 'cycle'
         properties: {
           addressPrefix: '${prefixIPaddr}.1.0/24'
         }
       }
       {
-        name: '${prefixDeploy}-anf'
+        name: 'anf'
         properties: {
           addressPrefix: '${prefixIPaddr}.2.0/24'
           delegations: [
@@ -59,7 +59,7 @@ resource cyclevnet 'Microsoft.Network/virtualNetworks@2021-05-01' = {
         }
       }
       {
-        name: '${prefixDeploy}-compute'
+        name: 'compute'
         properties: {
           addressPrefix: '${prefixIPaddr}.4.0/22'
         }
@@ -76,7 +76,7 @@ resource cycleEIP 'Microsoft.Network/publicIPAddresses@2021-05-01' = {
     publicIPAllocationMethod: 'Static'
     idleTimeoutInMinutes: 4
     dnsSettings: {
-      domainNameLabel: toLower('${prefixDeploy}domain')
+      domainNameLabel: toLower('${prefixDeploy}')
     }
   }
 }
@@ -219,7 +219,20 @@ resource cycleVM 'Microsoft.Compute/virtualMachines@2021-11-01' = {
   }  
 }
 
+//var cmd2run = '[concat('python3 cyclecloud_install.py ', '--acceptTerms', ' --applicationSecret ', '\"', parameters('applicationSecret'), '\"', ' --applicationId ', '\"', parameters('applicationId'), '\"', ' --tenantId ', '\"', parameters('tenantId'), '\"', ' --azureSovereignCloud ', '\"', parameters('azureSovereignCloud'), '\"', ' --username ', '\"', parameters('username'), '\"', ' --password ', '\"', parameters('password'), '\"', ' --publickey ', '\"', parameters('SSH Public Key'), '\"', ' --hostname ', '\"', reference(variables('cycleIPName')).dnsSettings.fqdn, '\"', ' --storageAccount ', '\"', parameters('storageAccountName'), '\"', ' --resourceGroup ', '\"', resourceGroup().name, '\"', variables('letsEncrypt'), ' --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M')]'
+var cmd2run = 'echo "hello run command">>/tmp/hello.txt'
 
+resource cycleVMCmdRun 'Microsoft.Compute/virtualMachines/runCommands@2021-11-01' = {
+  name: 'InstallCycle'
+  location: curlocation
+  parent: cycleVM
+  properties: {
+    source: {
+      script: cmd2run
+      //scriptUri: urlScript
+    }
+  }
+}
 
 
 
