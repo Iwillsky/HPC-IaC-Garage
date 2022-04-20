@@ -5,17 +5,15 @@
 
 param spTenantId string = '72f988bf-86f1-41af-91ab-2d7cd011db47'
 param spAppId string = '5514139f-04f0-45e4-9aff-ef48e12a7b18'
-@secure()
+//@secure()
 param spAppSecret string = 'JaIeO--hlAMv0Wy1J-5ox5fWi.MOY1s_Y6'
-@secure()
 param keySSHpublic string = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQD37TYnbYRlY9rDqkxb8HmsBIrVw2B62aPZ0IExY4GnWyW8gJgfDGOSJPRG2iC6feD+xy4I0efFaKMxuS8+joBmBj86dj88xKfRD9gpsUKmhf92ybs0ZVlBsN3JYYBtxARPCRhjfTj9OZACTa4gWuJzAQPvWqGRE4j/MkRE+aCxuWj/unVKkJSHwii9yEjDRD8DhhDyceIz81X7AmxTBDr1ety8KZLcAZ8ZpVfjUqCJxICr4WenzYaq7zou6+RbohvQHANR9EMbLFSz/ISyf/VxmRb31Re19XyU5sSsKmXPq+xP5OMdiSMMnRmlyzDvawaF4Vstac5APm14afl06kMfDx4Ksy1MsN6JD23Ct/hDhgOB3xVHmDnmF6jAHfDFU2Mhbuqbt+PaS/VL7A9gI5dCVZGcfMMSSuv7acrZbem04dZGTzTsAyFihmb+unCICCQj074heOLAKjM02QZAA/jbJratO6JxvzKGG9sTsZwdg9hej+bfLKoANHdsY/j9Vjk= generated-by-azure'
-
 param userName string = 'cycleadmin'
-@secure()
+//@secure()
 param userPass string = 'Passw0rd'
+param nameStAcct string = 'asiahpcgbb'
 
-
-param urlScript string = 'https://raw.githubusercontent.com/CycleCloudCommunity/cyclecloud_arm/feature/update_cyclecloud_install/cyclecloud_install.py'
+//param urlScript string = 'https://raw.githubusercontent.com/CycleCloudCommunity/cyclecloud_arm/feature/update_cyclecloud_install/cyclecloud_install.py'
 param prefixDeploy string = 'AF${uniqueString(resourceGroup().id)}'
 param prefixIPaddr string = '10.18'
 param curlocation string = resourceGroup().location
@@ -26,7 +24,8 @@ var nameVM = '${prefixDeploy}-cycleVM'
 var nameNIC = '${prefixDeploy}-cycleNIC'
 var nameNSG = '${prefixDeploy}-cycleNSG'
 var nameIP = '${prefixDeploy}-cycleIP'
-var nameANFvol = 'volAlpha'
+var nameRg = resourceGroup().name
+//var nameANFvol = 'volAlpha'
 
 resource cyclevnet 'Microsoft.Network/virtualNetworks@2021-05-01' = {
   name:'${prefixDeploy}-cyclevnet'
@@ -80,6 +79,7 @@ resource cycleEIP 'Microsoft.Network/publicIPAddresses@2021-05-01' = {
     }
   }
 }
+var cyclefqdn = cycleEIP.properties.dnsSettings.fqdn
 
 resource cycleNSG 'Microsoft.Network/networkSecurityGroups@2021-05-01' = {
   name: nameNSG
@@ -219,20 +219,53 @@ resource cycleVM 'Microsoft.Compute/virtualMachines@2021-11-01' = {
   }  
 }
 
-//var cmd2run = '[concat('python3 cyclecloud_install.py ', '--acceptTerms', ' --applicationSecret ', '\"', parameters('applicationSecret'), '\"', ' --applicationId ', '\"', parameters('applicationId'), '\"', ' --tenantId ', '\"', parameters('tenantId'), '\"', ' --azureSovereignCloud ', '\"', parameters('azureSovereignCloud'), '\"', ' --username ', '\"', parameters('username'), '\"', ' --password ', '\"', parameters('password'), '\"', ' --publickey ', '\"', parameters('SSH Public Key'), '\"', ' --hostname ', '\"', reference(variables('cycleIPName')).dnsSettings.fqdn, '\"', ' --storageAccount ', '\"', parameters('storageAccountName'), '\"', ' --resourceGroup ', '\"', resourceGroup().name, '\"', variables('letsEncrypt'), ' --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M')]'
-var cmd2run = 'echo "hello run command">>/tmp/hello.txt'
-
+//var cmd2run = 'echo "hello run command">>/tmp/hello.txt'
+/*
 resource cycleVMCmdRun 'Microsoft.Compute/virtualMachines/runCommands@2021-11-01' = {
   name: 'InstallCycle'
   location: curlocation
   parent: cycleVM
   properties: {
+    parameters: [
+      {
+        name: 'p1'
+        value: 'param1'
+      }
+      {
+        name: 'p2'
+        value: '1510'
+      }
+      {
+        name: 'p3'
+        value: 'backup'
+      }
+    ]    
     source: {
-      script: cmd2run
-      //scriptUri: urlScript
+      //script: cmd2run
+      scriptUri: 'https://asiahpcgbb.blob.core.windows.net/share/testsh.sh'      
     }
   }
 }
+*/
 
-
-
+resource cycleVMExtension 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
+  name: 'CycleExtension'
+  location: curlocation
+  parent: cycleVM  
+  properties: {
+    autoUpgradeMinorVersion: true
+    protectedSettings: {
+      commandToExecute: 'python3 cyclecloud_install.py --acceptTerms --applicationSecret ${spAppSecret} --applicationId ${spAppId} --tenantId ${spTenantId} --azureSovereignCloud public --username ${userName} --password ${userPass} --publickey "${keySSHpublic}" --hostname ${cyclefqdn} --storageAccount ${nameStAcct} --resourceGroup ${nameRg} --useLetsEncrypt --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M'
+      //'python3 test.py --pval=1010'
+    }
+    publisher: 'Microsoft.Azure.Extensions'
+    settings: {
+      fileUris: [
+        'https://raw.githubusercontent.com/CycleCloudCommunity/cyclecloud_arm/feature/update_cyclecloud_install/cyclecloud_install.py'
+        //'https://asiahpcgbb.blob.core.windows.net/share/test.py'
+      ]
+    }
+    type: 'CustomScript'
+    typeHandlerVersion: '2.0'
+  }  
+}
