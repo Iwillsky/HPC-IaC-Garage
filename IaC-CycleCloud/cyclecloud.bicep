@@ -1,31 +1,32 @@
 // CycleCloud environment buiding template
-// Author: Xavier Cui (github.com/Iwillsky)
-// License: MIT
-// Date: 2022-04-18 (v1.0)
 
-param spTenantId string = '72f988bf-86f1-41af-91ab-2d7cd011db47'
-param spAppId string = '5514139f-04f0-45e4-9aff-ef48e12a7b18'
-//@secure()
-param spAppSecret string = 'JaIeO--hlAMv0Wy1J-5ox5fWi.MOY1s_Y6'
-param keySSHpublic string = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQD37TYnbYRlY9rDqkxb8HmsBIrVw2B62aPZ0IExY4GnWyW8gJgfDGOSJPRG2iC6feD+xy4I0efFaKMxuS8+joBmBj86dj88xKfRD9gpsUKmhf92ybs0ZVlBsN3JYYBtxARPCRhjfTj9OZACTa4gWuJzAQPvWqGRE4j/MkRE+aCxuWj/unVKkJSHwii9yEjDRD8DhhDyceIz81X7AmxTBDr1ety8KZLcAZ8ZpVfjUqCJxICr4WenzYaq7zou6+RbohvQHANR9EMbLFSz/ISyf/VxmRb31Re19XyU5sSsKmXPq+xP5OMdiSMMnRmlyzDvawaF4Vstac5APm14afl06kMfDx4Ksy1MsN6JD23Ct/hDhgOB3xVHmDnmF6jAHfDFU2Mhbuqbt+PaS/VL7A9gI5dCVZGcfMMSSuv7acrZbem04dZGTzTsAyFihmb+unCICCQj074heOLAKjM02QZAA/jbJratO6JxvzKGG9sTsZwdg9hej+bfLKoANHdsY/j9Vjk= generated-by-azure'
+param spTenantId string
+param spAppId string
+@secure()
+param spAppSecret string
+param keySSHpublic string
 param userName string = 'cycleadmin'
-//@secure()
-param userPass string = 'Passw0rd'
-param nameStAcct string = 'asiahpcgbb'
+@secure()
+param userPass string
 
-//param urlScript string = 'https://raw.githubusercontent.com/CycleCloudCommunity/cyclecloud_arm/feature/update_cyclecloud_install/cyclecloud_install.py'
-param prefixDeploy string = 'AF${uniqueString(resourceGroup().id)}'
-param prefixIPaddr string = '10.18'
 param curlocation string = resourceGroup().location
+param prefixDeploy string = 'af${uniqueString(resourceGroup().id)}'
+param prefixIPaddr string = '10.18'   //Will create 10.18.0.0/16 VNet accordingly
+param boolStAcctdeploy bool = true
+param nameStAcct string = toLower('${prefixDeploy}')
+param boolANFdeploy bool = true
+param sizeANFinTB int = 4
 
-var skuCycleVM = 'Standard_D4s_v3'
-var skuCycleDisk = 'Standard_LRS'
+var skuCycleVM = 'Standard_D4s_v3'   
+var skuCycleDisk = 'Standard_LRS'    //Option:  Premium_LRS
 var nameVM = '${prefixDeploy}-cycleVM'
 var nameNIC = '${prefixDeploy}-cycleNIC'
 var nameNSG = '${prefixDeploy}-cycleNSG'
 var nameIP = '${prefixDeploy}-cycleIP'
 var nameRg = resourceGroup().name
-//var nameANFvol = 'volAlpha'
+var nameANFacct = '${prefixDeploy}-anfacct'
+var nameANFcapool = '${prefixDeploy}-pool'
+var nameANFvol = 'volprotein'
 
 resource cyclevnet 'Microsoft.Network/virtualNetworks@2021-05-01' = {
   name:'${prefixDeploy}-cyclevnet'
@@ -79,7 +80,6 @@ resource cycleEIP 'Microsoft.Network/publicIPAddresses@2021-05-01' = {
     }
   }
 }
-var cyclefqdn = cycleEIP.properties.dnsSettings.fqdn
 
 resource cycleNSG 'Microsoft.Network/networkSecurityGroups@2021-05-01' = {
   name: nameNSG
@@ -154,6 +154,51 @@ resource cycleNIC 'Microsoft.Network/networkInterfaces@2021-05-01' = {
     networkSecurityGroup: {
       id: cycleNSG.id
     }       
+  }
+}
+
+resource cycleStAcct 'Microsoft.Storage/storageAccounts@2021-08-01' = if (boolStAcctdeploy) {
+  name: nameStAcct
+  location: curlocation
+  sku: {
+    name: 'Standard_ZRS'
+  }
+  kind: 'StorageV2'
+}
+
+resource anfAcct 'Microsoft.NetApp/netAppAccounts@2021-10-01' = if (boolANFdeploy) {
+  name: nameANFacct
+  location: curlocation
+}
+
+resource anfPool 'Microsoft.NetApp/netAppAccounts/capacityPools@2021-10-01' = if (boolANFdeploy) {
+  name: nameANFcapool
+  location: curlocation
+  parent: anfAcct
+  properties: {
+    serviceLevel: 'Premium'
+    size: sizeANFinTB*1024*1024*1024*1024
+  }
+}
+
+resource anfVolume 'Microsoft.NetApp/netAppAccounts/capacityPools/volumes@2021-10-01' = if (boolANFdeploy) {
+  name: nameANFvol
+  location: curlocation
+  parent: anfPool
+  properties: {
+    creationToken: nameANFvol
+    subnetId: cyclevnet.properties.subnets[1].id
+    usageThreshold: sizeANFinTB*920*1024*1024*1024  //alerting at 90%
+    exportPolicy: {
+      rules: [
+        {
+          allowedClients: '${prefixIPaddr}.0.0/16'
+          nfsv41: true
+          hasRootAccess: true
+          chownMode: 'Unrestricted'
+        }
+      ]
+    }
   }
 }
 
@@ -248,6 +293,7 @@ resource cycleVMCmdRun 'Microsoft.Compute/virtualMachines/runCommands@2021-11-01
 }
 */
 
+var cyclefqdn = cycleEIP.properties.dnsSettings.fqdn
 resource cycleVMExtension 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
   name: 'CycleExtension'
   location: curlocation
@@ -269,3 +315,6 @@ resource cycleVMExtension 'Microsoft.Compute/virtualMachines/extensions@2021-11-
     typeHandlerVersion: '2.0'
   }  
 }
+
+output anfExportIP string = anfVolume.properties.mountTargets[0].ipAddress
+output urlCycleCloud string = 'https://${cyclefqdn}'
