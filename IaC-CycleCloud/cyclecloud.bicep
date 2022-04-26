@@ -11,14 +11,14 @@ param userPass string
 
 param curlocation string = resourceGroup().location
 param prefixDeploy string = 'af${uniqueString(resourceGroup().id)}'
-param prefixIPaddr string = '10.18'   //Will create 10.18.0.0/16 VNet accordingly
+param prefixIPaddr string = '10.18'     //Will create 10.18.0.0/16 VNet accordingly
 param boolStAcctdeploy bool = true
 param nameStAcct string = toLower('${prefixDeploy}')
 param boolANFdeploy bool = true
 param sizeANFinTB int = 4
 
 var skuCycleVM = 'Standard_D4s_v3'   
-var skuCycleDisk = 'Standard_LRS'    //Option:  Premium_LRS
+var skuCycleDisk = 'Standard_LRS'       //Option:  Premium_LRS
 var nameVM = '${prefixDeploy}-cycleVM'
 var nameNIC = '${prefixDeploy}-cycleNIC'
 var nameNSG = '${prefixDeploy}-cycleNSG'
@@ -188,17 +188,23 @@ resource anfVolume 'Microsoft.NetApp/netAppAccounts/capacityPools/volumes@2021-1
   properties: {
     creationToken: nameANFvol
     subnetId: cyclevnet.properties.subnets[1].id
-    usageThreshold: sizeANFinTB*920*1024*1024*1024  //alerting at 90%
+    usageThreshold: sizeANFinTB*920*1024*1024*1024    //alerting at 90%
     exportPolicy: {
       rules: [
         {
+          ruleIndex: 1
           allowedClients: '${prefixIPaddr}.0.0/16'
-          nfsv41: true
-          hasRootAccess: true
-          chownMode: 'Unrestricted'
+          nfsv3: false
+          nfsv41: true                    
+          unixReadWrite: true
+          unixReadOnly: false
+          cifs: false
         }
       ]
     }
+    protocolTypes: [
+      'NFSv4.1'
+    ]
   }
 }
 
@@ -263,35 +269,6 @@ resource cycleVM 'Microsoft.Compute/virtualMachines@2021-11-01' = {
     }
   }  
 }
-
-//var cmd2run = 'echo "hello run command">>/tmp/hello.txt'
-/*
-resource cycleVMCmdRun 'Microsoft.Compute/virtualMachines/runCommands@2021-11-01' = {
-  name: 'InstallCycle'
-  location: curlocation
-  parent: cycleVM
-  properties: {
-    parameters: [
-      {
-        name: 'p1'
-        value: 'param1'
-      }
-      {
-        name: 'p2'
-        value: '1510'
-      }
-      {
-        name: 'p3'
-        value: 'backup'
-      }
-    ]    
-    source: {
-      //script: cmd2run
-      scriptUri: 'https://asiahpcgbb.blob.core.windows.net/share/testsh.sh'      
-    }
-  }
-}
-*/
 
 var cyclefqdn = cycleEIP.properties.dnsSettings.fqdn
 resource cycleVMExtension 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
