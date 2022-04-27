@@ -14,8 +14,10 @@ param prefixDeploy string = 'af${uniqueString(resourceGroup().id)}'
 param prefixIPaddr string = '10.18'     //Will create 10.18.0.0/16 VNet accordingly
 param boolStAcctdeploy bool = true
 param nameStAcct string = toLower('${prefixDeploy}')
-param boolANFdeploy bool = true
+param boolANFdeploy bool = false
 param sizeANFinTB int = 4
+param cidrWhitelist string = '0.0.0.0/0'
+param typeSovereign string = 'public'
 
 var skuCycleVM = 'Standard_D4s_v3'   
 var skuCycleDisk = 'Standard_LRS'       //Option:  Premium_LRS
@@ -59,6 +61,12 @@ resource cyclevnet 'Microsoft.Network/virtualNetworks@2021-05-01' = {
         }
       }
       {
+        name: 'user'
+        properties: {
+          addressPrefix: '${prefixIPaddr}.3.0/24'
+        }
+      }
+      {
         name: 'compute'
         properties: {
           addressPrefix: '${prefixIPaddr}.4.0/22'
@@ -94,7 +102,7 @@ resource cycleNSG 'Microsoft.Network/networkSecurityGroups@2021-05-01' = {
           direction: 'Inbound'
           sourcePortRange: '*'
           destinationPortRange: '443'
-          sourceAddressPrefix:'Internet'
+          sourceAddressPrefix: cidrWhitelist
           destinationAddressPrefix: 'VirtualNetwork'
           priority: 1000
         } 
@@ -107,7 +115,7 @@ resource cycleNSG 'Microsoft.Network/networkSecurityGroups@2021-05-01' = {
           direction: 'Inbound'
           sourcePortRange: '*'
           destinationPortRange: '80'
-          sourceAddressPrefix:'Internet'
+          sourceAddressPrefix: cidrWhitelist
           destinationAddressPrefix: 'VirtualNetwork'
           priority: 1001
         }
@@ -120,7 +128,7 @@ resource cycleNSG 'Microsoft.Network/networkSecurityGroups@2021-05-01' = {
           direction: 'Inbound'
           sourcePortRange: '*'
           destinationPortRange: '22'
-          sourceAddressPrefix:'*'
+          sourceAddressPrefix: cidrWhitelist
           destinationAddressPrefix: '*'
           priority: 1002
         }
@@ -278,14 +286,12 @@ resource cycleVMExtension 'Microsoft.Compute/virtualMachines/extensions@2021-11-
   properties: {
     autoUpgradeMinorVersion: true
     protectedSettings: {
-      commandToExecute: 'python3 cyclecloud_install.py --acceptTerms --applicationSecret ${spAppSecret} --applicationId ${spAppId} --tenantId ${spTenantId} --azureSovereignCloud public --username ${userName} --password ${userPass} --publickey "${keySSHpublic}" --hostname ${cyclefqdn} --storageAccount ${nameStAcct} --resourceGroup ${nameRg} --useLetsEncrypt --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M'
-      //'python3 test.py --pval=1010'
+      commandToExecute: 'python3 cyclecloud_install.py --acceptTerms --applicationSecret ${spAppSecret} --applicationId ${spAppId} --tenantId ${spTenantId} --azureSovereignCloud ${typeSovereign} --username ${userName} --password ${userPass} --publickey "${keySSHpublic}" --hostname ${cyclefqdn} --storageAccount ${nameStAcct} --resourceGroup ${nameRg} --useLetsEncrypt --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M'      
     }
     publisher: 'Microsoft.Azure.Extensions'
     settings: {
       fileUris: [
-        'https://raw.githubusercontent.com/CycleCloudCommunity/cyclecloud_arm/feature/update_cyclecloud_install/cyclecloud_install.py'
-        //'https://asiahpcgbb.blob.core.windows.net/share/test.py'
+        'https://raw.githubusercontent.com/CycleCloudCommunity/cyclecloud_arm/feature/update_cyclecloud_install/cyclecloud_install.py'        
       ]
     }
     type: 'CustomScript'
@@ -293,5 +299,5 @@ resource cycleVMExtension 'Microsoft.Compute/virtualMachines/extensions@2021-11-
   }  
 }
 
-output anfExportIP string = anfVolume.properties.mountTargets[0].ipAddress
+output anfExportIP string = boolANFdeploy ? anfVolume.properties.mountTargets[0].ipAddress : '' 
 output urlCycleCloud string = 'https://${cyclefqdn}'

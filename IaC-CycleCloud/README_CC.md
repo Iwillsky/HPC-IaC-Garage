@@ -1,2 +1,2 @@
-# HPC-IaC-Garage
-Collection of HPC application based on Infra-as-Code templates.
+# IaC-CycleCloud： Bicep template for Azure CycleCloud environment building
+Infra-as-Code templates for CycleCloud building
