@@ -1,26 +1,30 @@
 # IaC-CycleCloud： Bicep template for Azure CycleCloud environment building
-Infra-as-Code(Bicep) templates for CycleCloud building
 
 ## Pre-requisites
 · Enter "Cloud Shell" in console top-right or use your bastion terminal with [Azure CLI installed](https://docs.microsoft.com/en-us/azure/azure-resource-manager/bicep/install#azure-cli).
+
 · Has a SSH Keypair created in [Azure portal](https://docs.microsoft.com/en-us/azure/virtual-machines/ssh-keys-portal) or [using CLI](https://docs.microsoft.com/en-us/azure/cyclecloud/how-to/install-arm?view=cyclecloud-8#ssh-keypair).
 
 ## Setup
-	1. Create service principal
-    ```
+	1. Create service principal 
+ 
+ ```
 		az ad sp create-for-rbac --name CycleCloudApp --years 1
-    ```
+```
+
 	The output will display a number of parameters. You will need to save the appId, password, and tenant:
-    ```
+
+ ```
 		"appId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
 		"displayName": "CycleCloudApp",
 		"name": "http://CycleCloudApp",
 		"password": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
 		"tenant": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-    ```
+```
 
 	2. Execute:
-	```	
+	
+```	
         git clone https://github.com/Iwillsky/HPC-IaC-Garage.git
 		cd HPC-IaC-Garage/IaC-CycleCloud
 		
@@ -31,7 +35,7 @@ Infra-as-Code(Bicep) templates for CycleCloud building
 		AF2SSHPublic = '<your-ssh-publickey>'
 		az group create --name rgHPC --location southeastasia
 		az deployment group create -g rgHPC --template-file ./HPC-IaC-Garage/IaC-CycleCloud/cyclecloudiac.bicep --parameters spTenantId=$AF2TenantID spAppId=$AF2AppID spAppSecret=$AF2AppSecret keySSHpublic=$AF2SSHPublic userPass=$AF2UserPass 
-    ```
+```
 
 	3. Wait 10-20 minutes.
 
@@ -42,13 +46,17 @@ Infra-as-Code(Bicep) templates for CycleCloud building
 		c. Can define the whitelisted IP cidr for CycleCloud portal access to enhance security, as "cidrWhitelist='167.220.0.0/16'".
 		d. Template will create a new storage account. Can disable this building by "boolStAcctdeploy=false" and provide the existed storage account by "nameStAcct='<yourStAcctname>'"
 	For example: 
-    ```
+
+```
 		az deployment group create -g rgHPC --template-file ./HPC-IaC-Garage/IaC-CycleCloud/cyclecloudiac.bicep --parameters spTenantId=$AF2TenantID spAppId=$AF2AppID spAppSecret=$AF2AppSecret keySSHpublic=$AF2SSHPublic userPass=$AF2UserPass prefixIPaddr='10.163' boolANFdeploy=true sizeANFinTB=4 cidrWhitelist='xx.xx.0.0/16' boolStAcctdeploy=false nameStAcct='<exist-storageaccount>'
-    ```
+```
+
 	6. Tear down
-    ```
+
+```
         az group delete -g rgHPC
-    ```
+```
+
 
 
 
