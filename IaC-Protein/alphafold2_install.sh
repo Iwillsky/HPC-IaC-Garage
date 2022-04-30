@@ -21,4 +21,4 @@ cd alphafold/
 sudo docker build -f docker/Dockerfile -t alphafold .
 sudo pip3 install -r docker/requirements.txt
 
-#sudo waagent -deprovision+user -force
+sudo waagent -deprovision+user -force

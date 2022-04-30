@@ -314,16 +314,7 @@ resource imgAlphaFold2 'Microsoft.Compute/images@2021-11-01' = {
     hyperVGeneration: 'V1'
     sourceVirtualMachine: {
       id: imageVM.id
-    }
-    storageProfile: {
-      osDisk: {
-        osState: 'Generalized'
-        osType: 'Linux'
-        storageAccountType: 'Standard_LRS'
-        diskSizeGB: 128
-      }
-      zoneResilient: true
-    }
+    }   
   }
 }
 

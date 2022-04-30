@@ -1,6 +1,6 @@
 #!/bin/bash
 export myVM=af2ImgVM
-export myImage=imgAlphaFold2
+export myImage=imgAlphaFold2cmd
 export myResourceGroup=Rampup-study
 az vm deallocate --resource-group $myResourceGroup --name $myVM
 az vm generalize --resource-group $myResourceGroup --name $myVM
