@@ -1,4 +1,4 @@
-// CycleCloud environment buiding template
+// AlphaFold2 environment buiding template
 
 param spTenantId string
 param spAppId string
@@ -11,14 +11,18 @@ param userPass string
 
 param curlocation string = resourceGroup().location
 param prefixDeploy string = 'af${uniqueString(resourceGroup().id)}'
-param prefixIPaddr string = '10.18'   //Will create 10.18.0.0/16 VNet accordingly
+param prefixIPaddr string = '10.18'     //Will create 10.18.0.0/16 VNet accordingly
 param boolStAcctdeploy bool = true
 param nameStAcct string = toLower('${prefixDeploy}')
 param boolANFdeploy bool = true
 param sizeANFinTB int = 4
+param cidrWhitelist string = '0.0.0.0/0'
+param typeSovereign string = 'public'
 
 var skuCycleVM = 'Standard_D4s_v3'   
-var skuCycleDisk = 'Standard_LRS'    //Option:  Premium_LRS
+var skuCycleDisk = 'Standard_LRS'       //Option:  Premium_LRS
+var skuImageVM = 'Standard_NC6s_v3'  
+var skuImageDisk = 'Standard_LRS'   
 var nameVM = '${prefixDeploy}-cycleVM'
 var nameNIC = '${prefixDeploy}-cycleNIC'
 var nameNSG = '${prefixDeploy}-cycleNSG'
@@ -27,6 +31,7 @@ var nameRg = resourceGroup().name
 var nameANFacct = '${prefixDeploy}-anfacct'
 var nameANFcapool = '${prefixDeploy}-pool'
 var nameANFvol = 'volprotein'
+var nameImgVM = 'af2ImgVM'
 
 resource cyclevnet 'Microsoft.Network/virtualNetworks@2021-05-01' = {
   name:'${prefixDeploy}-cyclevnet'
@@ -56,6 +61,12 @@ resource cyclevnet 'Microsoft.Network/virtualNetworks@2021-05-01' = {
               }                            
             }
           ]
+        }
+      }
+      {
+        name: 'user'
+        properties: {
+          addressPrefix: '${prefixIPaddr}.3.0/24'
         }
       }
       {
@@ -94,7 +105,7 @@ resource cycleNSG 'Microsoft.Network/networkSecurityGroups@2021-05-01' = {
           direction: 'Inbound'
           sourcePortRange: '*'
           destinationPortRange: '443'
-          sourceAddressPrefix:'Internet'
+          sourceAddressPrefix: cidrWhitelist
           destinationAddressPrefix: 'VirtualNetwork'
           priority: 1000
         } 
@@ -107,7 +118,7 @@ resource cycleNSG 'Microsoft.Network/networkSecurityGroups@2021-05-01' = {
           direction: 'Inbound'
           sourcePortRange: '*'
           destinationPortRange: '80'
-          sourceAddressPrefix:'Internet'
+          sourceAddressPrefix: cidrWhitelist
           destinationAddressPrefix: 'VirtualNetwork'
           priority: 1001
         }
@@ -120,7 +131,7 @@ resource cycleNSG 'Microsoft.Network/networkSecurityGroups@2021-05-01' = {
           direction: 'Inbound'
           sourcePortRange: '*'
           destinationPortRange: '22'
-          sourceAddressPrefix:'*'
+          sourceAddressPrefix: cidrWhitelist
           destinationAddressPrefix: '*'
           priority: 1002
         }
@@ -188,7 +199,7 @@ resource anfVolume 'Microsoft.NetApp/netAppAccounts/capacityPools/volumes@2021-1
   properties: {
     creationToken: nameANFvol
     subnetId: cyclevnet.properties.subnets[1].id
-    usageThreshold: sizeANFinTB*920*1024*1024*1024  //alerting at 90%
+    usageThreshold: sizeANFinTB*920*1024*1024*1024    //alerting at 90%
     exportPolicy: {
       rules: [
         {
@@ -205,6 +216,114 @@ resource anfVolume 'Microsoft.NetApp/netAppAccounts/capacityPools/volumes@2021-1
     protocolTypes: [
       'NFSv4.1'
     ]
+  }
+}
+
+resource imgNIC 'Microsoft.Network/networkInterfaces@2021-05-01' = {
+  name: 'nicImg'
+  location: curlocation
+  properties: {    
+    enableAcceleratedNetworking: false
+    enableIPForwarding: false
+    ipConfigurations: [
+      {
+        name: 'ipconfig2'
+        properties: {
+          primary: true
+          privateIPAddressVersion: 'IPv4'
+          privateIPAllocationMethod: 'Dynamic'          
+          subnet: {
+            id: cyclevnet.properties.subnets[0].id
+          }
+        }
+      }
+    ]    
+  }
+}
+
+resource imageVM 'Microsoft.Compute/virtualMachines@2021-11-01' = {
+  name: nameImgVM
+  location: curlocation
+  properties: {
+    hardwareProfile: {
+      vmSize: skuImageVM
+    }
+    networkProfile: {
+      networkInterfaces: [
+        {
+          id: imgNIC.id
+        }
+      ]
+    }
+    osProfile: {
+      adminUsername: userName
+      computerName: nameImgVM
+      linuxConfiguration: {
+        disablePasswordAuthentication: true
+        ssh: {
+          publicKeys: [
+            {
+              keyData: keySSHpublic
+              path: '/home/${userName}/.ssh/authorized_keys'
+            }
+          ]
+        }
+      }
+    }
+    storageProfile: {      
+      imageReference: {
+        offer: 'CentOS-HPC'
+        publisher: 'OpenLogic'
+        sku: '8_1'
+        version: 'latest'        
+      }
+      osDisk: {
+        createOption: 'FromImage'
+        caching: 'ReadWrite'
+        managedDisk: {
+          storageAccountType: skuImageDisk          
+        }
+        osType: 'Linux'
+        diskSizeGB: 128
+      } 
+    }
+  }
+}
+
+resource imageVMCmdRun 'Microsoft.Compute/virtualMachines/runCommands@2021-11-01' = {
+  name: 'InstallAF2'
+  location: curlocation
+  parent: imageVM
+  properties: {        
+    source: {      
+      scriptUri: 'https://raw.githubusercontent.com/iwillsky/HPC-Iac-Garage/master/IaC-Protein/alphafold2_install.py'      
+    }
+  }
+}
+
+param utcTmstr string = utcNow('yyyy-mm-dd HH:mm:ss')
+resource imgAlphaFold2 'Microsoft.Compute/images@2021-11-01' = {
+  name: 'imgAlphaFold2'
+  location: curlocation
+  tags: {
+    CreateDate: utcTmstr
+    ImageFor: 'AlphaFold2'
+    CreateBy: 'AF2 Bicep teamplate'
+  }
+  properties: {
+    hyperVGeneration: 'V1'
+    sourceVirtualMachine: {
+      id: imageVM.id
+    }
+    storageProfile: {
+      osDisk: {
+        osState: 'Generalized'
+        osType: 'Linux'
+        storageAccountType: 'Standard_LRS'
+        diskSizeGB: 128
+      }
+      zoneResilient: true
+    }
   }
 }
 
@@ -278,14 +397,12 @@ resource cycleVMExtension 'Microsoft.Compute/virtualMachines/extensions@2021-11-
   properties: {
     autoUpgradeMinorVersion: true
     protectedSettings: {
-      commandToExecute: 'python3 cyclecloud_install.py --acceptTerms --applicationSecret ${spAppSecret} --applicationId ${spAppId} --tenantId ${spTenantId} --azureSovereignCloud public --username ${userName} --password ${userPass} --publickey "${keySSHpublic}" --hostname ${cyclefqdn} --storageAccount ${nameStAcct} --resourceGroup ${nameRg} --useLetsEncrypt --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M'
-      //'python3 test.py --pval=1010'
+      commandToExecute: 'python3 cyclecloud_install.py --acceptTerms --applicationSecret ${spAppSecret} --applicationId ${spAppId} --tenantId ${spTenantId} --azureSovereignCloud ${typeSovereign} --username ${userName} --password ${userPass} --publickey "${keySSHpublic}" --hostname ${cyclefqdn} --storageAccount ${nameStAcct} --resourceGroup ${nameRg} --useLetsEncrypt --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M'      
     }
     publisher: 'Microsoft.Azure.Extensions'
     settings: {
       fileUris: [
-        'https://raw.githubusercontent.com/CycleCloudCommunity/cyclecloud_arm/feature/update_cyclecloud_install/cyclecloud_install.py'
-        //'https://asiahpcgbb.blob.core.windows.net/share/test.py'
+        'https://raw.githubusercontent.com/CycleCloudCommunity/cyclecloud_arm/feature/update_cyclecloud_install/cyclecloud_install.py'        
       ]
     }
     type: 'CustomScript'
@@ -293,5 +410,5 @@ resource cycleVMExtension 'Microsoft.Compute/virtualMachines/extensions@2021-11-
   }  
 }
 
-output anfExportIP string = anfVolume.properties.mountTargets[0].ipAddress
+output anfExportIP string = boolANFdeploy ? anfVolume.properties.mountTargets[0].ipAddress : '' 
 output urlCycleCloud string = 'https://${cyclefqdn}'
