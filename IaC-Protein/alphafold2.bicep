@@ -290,7 +290,7 @@ resource imageVM 'Microsoft.Compute/virtualMachines@2021-11-01' = {
   }
 }
 
-resource imageVMCmdRun 'Microsoft.Compute/virtualMachines/runCommands@2021-11-01' = {
+resource imageVMCmdinstall 'Microsoft.Compute/virtualMachines/runCommands@2021-11-01' = {
   name: 'InstallAF2'
   location: curlocation
   parent: imageVM
