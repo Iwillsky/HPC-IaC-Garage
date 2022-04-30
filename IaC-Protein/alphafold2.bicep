@@ -303,7 +303,7 @@ resource imageVMCmdinstall 'Microsoft.Compute/virtualMachines/runCommands@2021-1
 
 param utcTmstr string = utcNow('yyyy-mm-dd HH:mm:ss')
 resource imgAlphaFold2 'Microsoft.Compute/images@2021-11-01' = {
-  name: 'imgAlphaFold2'
+  name: 'imgAlphaFold2arm'
   location: curlocation
   tags: {
     CreateDate: utcTmstr
