@@ -219,6 +219,16 @@ resource anfVolume 'Microsoft.NetApp/netAppAccounts/capacityPools/volumes@2021-1
   }
 }
 
+resource imgEIP 'Microsoft.Network/publicIPAddresses@2021-05-01' = {
+  name: 'ipImg'
+  location: curlocation
+  properties: {
+    publicIPAddressVersion: 'IPv4'
+    publicIPAllocationMethod: 'Static'
+    idleTimeoutInMinutes: 4    
+  }
+}
+
 resource imgNIC 'Microsoft.Network/networkInterfaces@2021-05-01' = {
   name: 'nicImg'
   location: curlocation
@@ -231,9 +241,12 @@ resource imgNIC 'Microsoft.Network/networkInterfaces@2021-05-01' = {
         properties: {
           primary: true
           privateIPAddressVersion: 'IPv4'
-          privateIPAllocationMethod: 'Dynamic'          
+          privateIPAllocationMethod: 'Dynamic' 
+          publicIPAddress: {
+            id: imgEIP.id            
+          }         
           subnet: {
-            id: cyclevnet.properties.subnets[0].id
+            id: cyclevnet.properties.subnets[0].id    //same subnet with cycleVM
           }
         }
       }
@@ -290,16 +303,38 @@ resource imageVM 'Microsoft.Compute/virtualMachines@2021-11-01' = {
   }
 }
 
+resource imgVMExtension 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
+  name: 'InstallAF2'
+  location: curlocation
+  parent: imageVM  
+  properties: {
+    autoUpgradeMinorVersion: true
+    protectedSettings: {
+      commandToExecute: '/bin/bash alphafold2_install.sh'      
+    }
+    publisher: 'Microsoft.Azure.Extensions'
+    settings: {
+      fileUris: [        
+        'https://raw.githubusercontent.com/iwillsky/HPC-Iac-Garage/master/IaC-Protein/alphafold2_install.sh'
+      ]
+    }
+    type: 'CustomScript'
+    typeHandlerVersion: '2.0'
+  }  
+}
+
+/*
 resource imageVMCmdinstall 'Microsoft.Compute/virtualMachines/runCommands@2021-11-01' = {
   name: 'InstallAF2'
   location: curlocation
   parent: imageVM
   properties: {        
     source: {      
-      scriptUri: 'https://raw.githubusercontent.com/iwillsky/HPC-Iac-Garage/master/IaC-Protein/alphafold2_install.py'      
+      scriptUri: 'https://raw.githubusercontent.com/iwillsky/HPC-Iac-Garage/master/IaC-Protein/alphafold2_install.sh'      
     }
   }
 }
+
 
 param utcTmstr string = utcNow('yyyy-mm-dd HH:mm:ss')
 resource imgAlphaFold2 'Microsoft.Compute/images@2021-11-01' = {
@@ -316,7 +351,7 @@ resource imgAlphaFold2 'Microsoft.Compute/images@2021-11-01' = {
       id: imageVM.id
     }   
   }
-}
+}*/
 
 resource cycleVM 'Microsoft.Compute/virtualMachines@2021-11-01' = {
   name: nameVM
@@ -388,7 +423,29 @@ resource cycleVMExtension 'Microsoft.Compute/virtualMachines/extensions@2021-11-
   properties: {
     autoUpgradeMinorVersion: true
     protectedSettings: {
-      commandToExecute: 'python3 cyclecloud_install.py --acceptTerms --applicationSecret ${spAppSecret} --applicationId ${spAppId} --tenantId ${spTenantId} --azureSovereignCloud ${typeSovereign} --username ${userName} --password ${userPass} --publickey "${keySSHpublic}" --hostname ${cyclefqdn} --storageAccount ${nameStAcct} --resourceGroup ${nameRg} --useLetsEncrypt --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M'      
+      //commandToExecute: 'python3 cyclecloud_install.py --acceptTerms --applicationSecret ${spAppSecret} --applicationId ${spAppId} --tenantId ${spTenantId} --azureSovereignCloud ${typeSovereign} --username ${userName} --password ${userPass} --publickey "${keySSHpublic}" --hostname ${cyclefqdn} --storageAccount ${nameStAcct} --resourceGroup ${nameRg} --useLetsEncrypt --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M'      
+      commandToExecute: '/bin/bash imagecreate.sh ${nameRg} ${nameImgVM}'
+    }
+    publisher: 'Microsoft.Azure.Extensions'
+    settings: {
+      fileUris: [
+        //'https://raw.githubusercontent.com/CycleCloudCommunity/cyclecloud_arm/feature/update_cyclecloud_install/cyclecloud_install.py'
+        'https://raw.githubusercontent.com/iwillsky/HPC-Iac-Garage/master/IaC-Protein/imagecreate.sh'        
+      ]
+    }
+    type: 'CustomScript'
+    typeHandlerVersion: '2.1'
+  }  
+}
+
+resource cycleVMExtension2 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
+  name: 'CycleExtension2'
+  location: curlocation
+  parent: cycleVM  
+  properties: {
+    autoUpgradeMinorVersion: true
+    protectedSettings: {
+      commandToExecute: 'python3 cyclecloud_install.py --acceptTerms --applicationSecret ${spAppSecret} --applicationId ${spAppId} --tenantId ${spTenantId} --azureSovereignCloud ${typeSovereign} --username ${userName} --password ${userPass} --publickey "${keySSHpublic}" --hostname ${cyclefqdn} --storageAccount ${nameStAcct} --resourceGroup ${nameRg} --useLetsEncrypt --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M'
     }
     publisher: 'Microsoft.Azure.Extensions'
     settings: {
@@ -397,9 +454,21 @@ resource cycleVMExtension 'Microsoft.Compute/virtualMachines/extensions@2021-11-
       ]
     }
     type: 'CustomScript'
-    typeHandlerVersion: '2.0'
+    typeHandlerVersion: '2.1'
   }  
 }
+
+/*
+resource imageVMCmdmakeimage 'Microsoft.Compute/virtualMachines/runCommands@2021-11-01' = {
+  name: 'MakeImgAF2'
+  location: curlocation
+  parent: cycleVM
+  properties: {        
+    source: {      
+      scriptUri: 'https://raw.githubusercontent.com/iwillsky/HPC-Iac-Garage/master/IaC-Protein/imagecreate.sh'      
+    }
+  }
+}*/
 
 output anfExportIP string = boolANFdeploy ? anfVolume.properties.mountTargets[0].ipAddress : '' 
 output urlCycleCloud string = 'https://${cyclefqdn}'

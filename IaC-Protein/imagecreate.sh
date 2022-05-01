@@ -1,7 +1,4 @@
 #!/bin/bash
-export myVM=af2ImgVM
-export myImage=imgAlphaFold2cmd
-export myResourceGroup=Rampup-study
-az vm deallocate --resource-group $myResourceGroup --name $myVM
-az vm generalize --resource-group $myResourceGroup --name $myVM
-az image create --resource-group $myResourceGroup --name $myImage --source $myVM --hyper-v-generation V2
+az vm deallocate --resource-group $1 --name $2
+az vm generalize --resource-group $1 --name $2
+az image create --resource-group $1 --name imgAlphaFold2cmd --source $2 --hyper-v-generation V2
