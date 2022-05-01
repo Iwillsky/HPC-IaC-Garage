@@ -416,30 +416,8 @@ resource cycleVM 'Microsoft.Compute/virtualMachines@2021-11-01' = {
 }
 
 var cyclefqdn = cycleEIP.properties.dnsSettings.fqdn
-resource cycleVMExtension 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
-  name: 'CycleExtension'
-  location: curlocation
-  parent: cycleVM  
-  properties: {
-    autoUpgradeMinorVersion: true
-    protectedSettings: {
-      //commandToExecute: 'python3 cyclecloud_install.py --acceptTerms --applicationSecret ${spAppSecret} --applicationId ${spAppId} --tenantId ${spTenantId} --azureSovereignCloud ${typeSovereign} --username ${userName} --password ${userPass} --publickey "${keySSHpublic}" --hostname ${cyclefqdn} --storageAccount ${nameStAcct} --resourceGroup ${nameRg} --useLetsEncrypt --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M'      
-      commandToExecute: '/bin/bash imagecreate.sh ${nameRg} ${nameImgVM}'
-    }
-    publisher: 'Microsoft.Azure.Extensions'
-    settings: {
-      fileUris: [
-        //'https://raw.githubusercontent.com/CycleCloudCommunity/cyclecloud_arm/feature/update_cyclecloud_install/cyclecloud_install.py'
-        'https://raw.githubusercontent.com/iwillsky/HPC-Iac-Garage/master/IaC-Protein/imagecreate.sh'        
-      ]
-    }
-    type: 'CustomScript'
-    typeHandlerVersion: '2.1'
-  }  
-}
-
-resource cycleVMExtension2 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
-  name: 'CycleExtension2'
+resource cycleVMExtension1 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
+  name: 'CycleExtension1'
   location: curlocation
   parent: cycleVM  
   properties: {
@@ -454,7 +432,27 @@ resource cycleVMExtension2 'Microsoft.Compute/virtualMachines/extensions@2021-11
       ]
     }
     type: 'CustomScript'
-    typeHandlerVersion: '2.1'
+    typeHandlerVersion: '2.0'
+  }  
+}
+
+resource cycleVMExtension2 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
+  name: 'CycleExtension2'
+  location: curlocation
+  parent: cycleVM  
+  properties: {
+    autoUpgradeMinorVersion: true
+    protectedSettings: {      
+      commandToExecute: '/bin/bash imagecreate.sh ${nameRg} ${nameImgVM}'
+    }
+    publisher: 'Microsoft.Azure.Extensions'
+    settings: {
+      fileUris: [        
+        'https://raw.githubusercontent.com/iwillsky/HPC-Iac-Garage/master/IaC-Protein/imagecreate.sh'        
+      ]
+    }
+    type: 'CustomScript'
+    typeHandlerVersion: '2.0'
   }  
 }
 
