@@ -250,7 +250,10 @@ resource imgNIC 'Microsoft.Network/networkInterfaces@2021-05-01' = {
           }
         }
       }
-    ]    
+    ]   
+    networkSecurityGroup: {
+      id: cycleNSG.id
+    } 
   }
 }
 
@@ -287,8 +290,8 @@ resource imageVM 'Microsoft.Compute/virtualMachines@2021-11-01' = {
       imageReference: {
         offer: 'CentOS-HPC'
         publisher: 'OpenLogic'
-        sku: '8_1'
-        version: 'latest'        
+        sku: '7_9-gen2'
+        version: 'latest'
       }
       osDisk: {
         createOption: 'FromImage'
@@ -302,7 +305,7 @@ resource imageVM 'Microsoft.Compute/virtualMachines@2021-11-01' = {
     }
   }
 }
-
+/*
 resource imgVMExtension 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
   name: 'InstallAF2'
   location: curlocation
@@ -323,7 +326,7 @@ resource imgVMExtension 'Microsoft.Compute/virtualMachines/extensions@2021-11-01
   }  
 }
 
-/*
+
 resource imageVMCmdinstall 'Microsoft.Compute/virtualMachines/runCommands@2021-11-01' = {
   name: 'InstallAF2'
   location: curlocation
@@ -334,7 +337,6 @@ resource imageVMCmdinstall 'Microsoft.Compute/virtualMachines/runCommands@2021-1
     }
   }
 }
-
 
 param utcTmstr string = utcNow('yyyy-mm-dd HH:mm:ss')
 resource imgAlphaFold2 'Microsoft.Compute/images@2021-11-01' = {
@@ -353,6 +355,7 @@ resource imgAlphaFold2 'Microsoft.Compute/images@2021-11-01' = {
   }
 }*/
 
+/*
 resource cycleVM 'Microsoft.Compute/virtualMachines@2021-11-01' = {
   name: nameVM
   location: curlocation
@@ -413,10 +416,10 @@ resource cycleVM 'Microsoft.Compute/virtualMachines@2021-11-01' = {
       } 
     }
   }  
-}
+}*/
 
 var cyclefqdn = cycleEIP.properties.dnsSettings.fqdn
-resource cycleVMExtension1 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
+/*resource cycleVMExtension1 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
   name: 'CycleExtension1'
   location: curlocation
   parent: cycleVM  
@@ -434,8 +437,8 @@ resource cycleVMExtension1 'Microsoft.Compute/virtualMachines/extensions@2021-11
     type: 'CustomScript'
     typeHandlerVersion: '2.0'
   }  
-}
-
+}*/
+/*
 resource cycleVMExtension2 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
   name: 'CycleExtension2'
   location: curlocation
@@ -456,7 +459,6 @@ resource cycleVMExtension2 'Microsoft.Compute/virtualMachines/extensions@2021-11
   }  
 }
 
-/*
 resource imageVMCmdmakeimage 'Microsoft.Compute/virtualMachines/runCommands@2021-11-01' = {
   name: 'MakeImgAF2'
   location: curlocation
