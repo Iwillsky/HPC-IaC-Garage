@@ -391,6 +391,7 @@ resource cycleVM 'Microsoft.Compute/virtualMachines@2021-11-01' = {
   ]  
 }
 
+
 var cyclefqdn = cycleEIP.properties.dnsSettings.fqdn
 resource cycleVMExtension1 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
   name: 'CycleExtension1'
@@ -399,8 +400,8 @@ resource cycleVMExtension1 'Microsoft.Compute/virtualMachines/extensions@2021-11
   properties: {
     autoUpgradeMinorVersion: true
     protectedSettings: {
-      //commandToExecute: 'python3 cyclecloud_install.py --acceptTerms --applicationSecret ${spAppSecret} --applicationId ${spAppId} --tenantId ${spTenantId} --azureSovereignCloud ${typeSovereign} --username ${userName} --password ${userPass} --publickey "${keySSHpublic}" --hostname ${cyclefqdn} --storageAccount ${nameStAcct} --resourceGroup ${nameRg} --useLetsEncrypt --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M'
-      commandToExecute: 'chmod +x imagecreate.sh && sudo ./alphafold2_install.sh imagecreate.sh ${nameRg} ${nameImgVM}'
+      commandToExecute: 'python3 cyclecloud_install.py --acceptTerms --applicationSecret ${spAppSecret} --applicationId ${spAppId} --tenantId ${spTenantId} --azureSovereignCloud ${typeSovereign} --username ${userName} --password ${userPass} --publickey "${keySSHpublic}" --hostname ${cyclefqdn} --storageAccount ${nameStAcct} --resourceGroup ${nameRg} --useLetsEncrypt --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M'
+      //commandToExecute: 'chmod +x imagecreate.sh && sudo ./alphafold2_install.sh imagecreate.sh ${nameRg} ${nameImgVM}'
       //commandToExecute: 'python3 cyclecloud_install.py --acceptTerms --applicationSecret ${spAppSecret} --applicationId ${spAppId} --tenantId ${spTenantId} --azureSovereignCloud ${typeSovereign} --username ${userName} --password ${userPass} --publickey "${keySSHpublic}" --hostname ${cyclefqdn} --storageAccount ${nameStAcct} --resourceGroup ${nameRg} --useLetsEncrypt --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M && /bin/bash imagecreate.sh ${nameRg} ${nameImgVM}'
     }
     publisher: 'Microsoft.Azure.Extensions'
