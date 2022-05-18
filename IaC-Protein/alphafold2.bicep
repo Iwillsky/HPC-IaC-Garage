@@ -303,11 +303,7 @@ resource imageVM 'Microsoft.Compute/virtualMachines@2021-11-01' = {
         diskSizeGB: 128
       } 
     }
-  }
-  //resource imgVMExtensionNest 'extensions' = {
-  //  name: 
-  //  location: 
-  //}
+  }  
 }
 
 resource imgVMExtension 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
@@ -329,35 +325,6 @@ resource imgVMExtension 'Microsoft.Compute/virtualMachines/extensions@2021-11-01
     typeHandlerVersion: '2.0'
   } 
 }
-
-/*
-resource imageVMCmdinstall 'Microsoft.Compute/virtualMachines/runCommands@2021-11-01' = {
-  name: 'InstallAF2RC'
-  location: curlocation
-  parent: imageVM
-  properties: {        
-    source: {      
-      scriptUri: 'https://raw.githubusercontent.com/iwillsky/HPC-Iac-Garage/master/IaC-Protein/alphafold2_install.sh'      
-    }
-  }
-}
-
-param utcTmstr string = utcNow('yyyy-mm-dd HH:mm:ss')
-resource imgAlphaFold2 'Microsoft.Compute/images@2021-11-01' = {
-  name: 'imgAlphaFold2arm'
-  location: curlocation
-  tags: {
-    CreateDate: utcTmstr
-    ImageFor: 'AlphaFold2'
-    CreateBy: 'AF2 Bicep teamplate'
-  }
-  properties: {
-    hyperVGeneration: 'V1'
-    sourceVirtualMachine: {
-      id: imageVM.id
-    }   
-  }
-}*/
 
 resource cycleVM 'Microsoft.Compute/virtualMachines@2021-11-01' = {
   name: nameVM
@@ -432,7 +399,9 @@ resource cycleVMExtension1 'Microsoft.Compute/virtualMachines/extensions@2021-11
   properties: {
     autoUpgradeMinorVersion: true
     protectedSettings: {
-      commandToExecute: 'python3 cyclecloud_install.py --acceptTerms --applicationSecret ${spAppSecret} --applicationId ${spAppId} --tenantId ${spTenantId} --azureSovereignCloud ${typeSovereign} --username ${userName} --password ${userPass} --publickey "${keySSHpublic}" --hostname ${cyclefqdn} --storageAccount ${nameStAcct} --resourceGroup ${nameRg} --useLetsEncrypt --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M && /bin/bash imagecreate.sh ${nameRg} ${nameImgVM}'
+      //commandToExecute: 'python3 cyclecloud_install.py --acceptTerms --applicationSecret ${spAppSecret} --applicationId ${spAppId} --tenantId ${spTenantId} --azureSovereignCloud ${typeSovereign} --username ${userName} --password ${userPass} --publickey "${keySSHpublic}" --hostname ${cyclefqdn} --storageAccount ${nameStAcct} --resourceGroup ${nameRg} --useLetsEncrypt --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M'
+      commandToExecute: 'chmod +x imagecreate.sh && sudo ./alphafold2_install.sh imagecreate.sh ${nameRg} ${nameImgVM}'
+      //commandToExecute: 'python3 cyclecloud_install.py --acceptTerms --applicationSecret ${spAppSecret} --applicationId ${spAppId} --tenantId ${spTenantId} --azureSovereignCloud ${typeSovereign} --username ${userName} --password ${userPass} --publickey "${keySSHpublic}" --hostname ${cyclefqdn} --storageAccount ${nameStAcct} --resourceGroup ${nameRg} --useLetsEncrypt --webServerPort 80 --webServerSslPort 443 --webServerMaxHeapSize 4096M && /bin/bash imagecreate.sh ${nameRg} ${nameImgVM}'
     }
     publisher: 'Microsoft.Azure.Extensions'
     settings: {

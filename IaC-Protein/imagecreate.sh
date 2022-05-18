@@ -5,4 +5,4 @@ sudo yum install azure-cli -y
 
 az vm deallocate --resource-group $1 --name $2
 az vm generalize --resource-group $1 --name $2
-az image create --resource-group $1 --name imgAlphaFold2cmd --source $2 --hyper-v-generation V2
+az image create --resource-group $1 --name imgAlphaFold2IaC --source $2 --hyper-v-generation V2

@@ -13,8 +13,6 @@ distribution=$(. /etc/os-release;echo $ID$VERSION_ID) \
 yum clean expire-cache
 yum install -y nvidia-docker2
 systemctl restart docker
-#usermod -aGdocker $USER
-#newgrp docker
 
 cd /opt
 git clone https://github.com/deepmind/alphafold.git
@@ -23,4 +21,4 @@ sed -i '/SHELL ["/bin/bash", "-c"]/a\RUN gpg --keyserver keyserver.ubuntu.com --
 docker build -f docker/Dockerfile -t alphafold .
 pip3 install -r docker/requirements.txt
 
-#waagent -deprovision+user -force
+waagent -deprovision+user -force

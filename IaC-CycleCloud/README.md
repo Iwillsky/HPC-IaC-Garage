@@ -42,9 +42,9 @@ az deployment group create -g rgHPC --template-file ./HPC-IaC-Garage/IaC-CycleCl
 4. Check  the ready resources. Go to console page "Home->Resource groups->rgHPC->Deployments" to check the resource created in rgHPC. Find the cycleVM's public IP/DNS name to visit CycleCloud console by browser.
 
 5. Customize your deployment by parameters appending:
-a. IP scope prefix can be defined by parameter "prefixIPaddr='10.163'" to avoid CIDR collision.
+a. IP scope prefix can be defined by parameter "prefixIPaddr='10.12'" to avoid CIDR collision with this 10.12.0.0/16.
 b. Can deploy an ANF volume for further HPC cluster using through "boolANFdeploy=true" and select the volume size as "sizeANFinTB=8"
-c. Can define the whitelisted IP cidr for CycleCloud portal access to enhance security, as "cidrWhitelist='167.220.0.0/16'".
+c. Can define the whitelisted IP cidr for CycleCloud portal access to enhance security, as "cidrWhitelist='xx.xxx.0.0/16'".
 d. Template will create a new storage account. Can disable this building by "boolStAcctdeploy=false" and provide the existed storage account by "nameStAcct='<yourStAcctname>'"
 
 For example: 
