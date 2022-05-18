@@ -21,4 +21,6 @@ sed -i '/SHELL ["/bin/bash", "-c"]/a\RUN gpg --keyserver keyserver.ubuntu.com --
 docker build -f docker/Dockerfile -t alphafold .
 pip3 install -r docker/requirements.txt
 
-waagent -deprovision+user -force
+#waagent -deprovision+user -force
+whoami>>/tmp/af2user.txt
+echo "af2 installed ok">>/tmp/signal.txt
