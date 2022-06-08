@@ -448,5 +448,42 @@ resource imageVMCmdmakeimage 'Microsoft.Compute/virtualMachines/runCommands@2021
   }
 }*/
 
+var userAssignedIdentityName = 'configDeployer'
+var roleAssignmentName = guid(resourceGroup().id, 'contributor')
+var contributorRoleDefinitionId = resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
+resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' = {
+  name: userAssignedIdentityName
+  location: resourceGroup().location
+}
+
+resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+  name: roleAssignmentName
+  properties: {
+    roleDefinitionId: contributorRoleDefinitionId
+    principalId: userAssignedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource myscript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+  name: 'myrun'
+  location: curlocation
+  kind: 'AzureCLI'
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${userAssignedIdentity.id}': {}
+    }
+  }
+  properties: {
+    azCliVersion: '2.35.0'
+    retentionInterval: 'P1D'
+    scriptContent: loadTextContent('imagecreate.sh')    
+  }
+  dependsOn: [
+    imgVMExtension
+  ]
+}
+
 output anfExportIP string = boolANFdeploy ? anfVolume.properties.mountTargets[0].ipAddress : '' 
 output urlCycleCloud string = 'https://${cyclefqdn}'
